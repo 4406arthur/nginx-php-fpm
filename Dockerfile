@@ -1,12 +1,12 @@
-FROM php:7.1.2-fpm-alpine
+FROM php:7.1.3-fpm-alpine
 
-MAINTAINER ngineered <support@ngineered.co.uk>
+MAINTAINER ArthurMa <arthurma@loftechs.com>
 
 ENV php_conf /usr/local/etc/php-fpm.conf
 ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
 ENV php_vars /usr/local/etc/php/conf.d/docker-vars.ini
 
-ENV NGINX_VERSION 1.11.10
+ENV NGINX_VERSION 1.12.0
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && CONFIG="\
@@ -59,6 +59,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
   && apk add --no-cache --virtual .build-deps \
     gcc \
+    autoconf  \
     libc-dev \
     make \
     openssl-dev \
@@ -123,7 +124,6 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
       | sort -u \
   )" \
   && apk add --no-cache --virtual .nginx-rundeps $runDeps \
-  && apk del .build-deps \
   && apk del .gettext \
   && mv /tmp/envsubst /usr/local/bin/ \
   \
@@ -141,33 +141,24 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     supervisor \
     curl \
     libcurl \
-    git \
     python \
     python-dev \
     py-pip \
     augeas-dev \
-    openssl-dev \
     ca-certificates \
     dialog \
-    gcc \
     musl-dev \
-    linux-headers \
     libmcrypt-dev \
     libpng-dev \
     icu-dev \
     libpq \
-    libxslt-dev \
     libffi-dev \
     freetype-dev \
-    sqlite-dev \
     libjpeg-turbo-dev && \
-    docker-php-ext-configure gd \
-      --with-gd \
-      --with-freetype-dir=/usr/include/ \
-      --with-png-dir=/usr/include/ \
-      --with-jpeg-dir=/usr/include/ && \
+    pecl install mongodb && \
+    docker-php-ext-enable mongodb.so && \
     #curl iconv session
-    docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
+    docker-php-ext-install pdo_mysql mcrypt exif json soap sockets opcache && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /var/www/app && \
@@ -181,7 +172,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     pip install -U pip && \
     pip install -U certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
-    apk del gcc musl-dev linux-headers libffi-dev augeas-dev python-dev
+    apk del gcc musl-dev linux-headers libffi-dev augeas-dev python-dev .build-deps
 #    ln -s /usr/bin/php7 /usr/bin/php
 
 ADD conf/supervisord.conf /etc/supervisord.conf
@@ -227,14 +218,11 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
 
 # Add Scripts
 ADD scripts/start.sh /start.sh
-ADD scripts/pull /usr/bin/pull
-ADD scripts/push /usr/bin/push
 ADD scripts/letsencrypt-setup /usr/bin/letsencrypt-setup
 ADD scripts/letsencrypt-renew /usr/bin/letsencrypt-renew
-RUN chmod 755 /usr/bin/pull && chmod 755 /usr/bin/push && chmod 755 /usr/bin/letsencrypt-setup && chmod 755 /usr/bin/letsencrypt-renew && chmod 755 /start.sh
+RUN chmod 755 /usr/bin/letsencrypt-setup && chmod 755 /usr/bin/letsencrypt-renew && chmod 755 /start.sh
 
 # copy in code
-ADD src/ /var/www/html/
 ADD errors/ /var/www/errors
 
 VOLUME /var/www/html
