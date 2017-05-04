@@ -72,6 +72,20 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     gd-dev \
     geoip-dev \
     perl-dev \
+    wget \
+    openssh-client \
+    libcurl \
+    augeas-dev \
+    ca-certificates \
+    dialog \
+    musl-dev \
+    libmcrypt-dev \
+    libpng-dev \
+    icu-dev \
+    libpq \
+    libffi-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
   && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
   && export GNUPGHOME="$(mktemp -d)" \
@@ -136,39 +150,19 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     echo /etc/apk/respositories && \
     apk update && \
     apk add --no-cache bash \
-    openssh-client \
-    wget \
     supervisor \
     curl \
-    libcurl \
     python \
     python-dev \
-    py-pip \
-    augeas-dev \
-    ca-certificates \
-    dialog \
-    musl-dev \
-    libmcrypt-dev \
-    libpng-dev \
-    icu-dev \
-    libpq \
-    libffi-dev \
-    freetype-dev \
-    libjpeg-turbo-dev && \
+    py-pip && \
     pecl install mongodb && \
     docker-php-ext-enable mongodb.so && \
     #curl iconv session
-    docker-php-ext-install pdo_mysql mcrypt exif json soap sockets opcache && \
+    docker-php-ext-install pdo_mysql mcrypt json sockets opcache && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
-    mkdir -p /var/www/app && \
     mkdir -p /run/nginx && \
     mkdir -p /var/log/supervisor && \
-    EXPECTED_COMPOSER_SIGNATURE=$(wget -q -O - https://composer.github.io/installer.sig) && \
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-    php -r "if (hash_file('SHA384', 'composer-setup.php') === '${EXPECTED_COMPOSER_SIGNATURE}') { echo 'Composer.phar Installer verified'; } else { echo 'Composer.phar Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" && \
-    php composer-setup.php --install-dir=/usr/bin --filename=composer && \
-    php -r "unlink('composer-setup.php');"  && \
     pip install -U pip && \
     pip install -U certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
@@ -178,18 +172,17 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
 ADD conf/supervisord.conf /etc/supervisord.conf
 
 # Copy our nginx config
-RUN rm -Rf /etc/nginx/nginx.conf
+RUN rm -Rf /etc/nginx/nginx.conf && \
+    #ceate log dir for logger use
+    mkdir -p /var/log/sTune && \
+    touch /var/log/sTune/api.log && \
+    chown -R nginx:nginx /var/log/sTune
+
 ADD conf/nginx.conf /etc/nginx/nginx.conf
 
 # nginx site conf
-RUN mkdir -p /etc/nginx/sites-available/ && \
-mkdir -p /etc/nginx/sites-enabled/ && \
-mkdir -p /etc/nginx/ssl/ && \
-rm -Rf /var/www/* && \
-mkdir /var/www/html/
-ADD conf/nginx-site.conf /etc/nginx/sites-available/default.conf
-ADD conf/nginx-site-ssl.conf /etc/nginx/sites-available/default-ssl.conf
-RUN ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
+RUN mkdir -p /etc/nginx/sites-enabled/ && \
+mkdir -p /etc/nginx/ssl/ 
 
 # tweak php-fpm config
 RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
@@ -215,17 +208,11 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
 #    find /etc/php7/conf.d/ -name "*.ini" -exec sed -i -re 's/^(\s*)#(.*)/\1;\2/g' {} \;
 
-
 # Add Scripts
 ADD scripts/start.sh /start.sh
 ADD scripts/letsencrypt-setup /usr/bin/letsencrypt-setup
 ADD scripts/letsencrypt-renew /usr/bin/letsencrypt-renew
 RUN chmod 755 /usr/bin/letsencrypt-setup && chmod 755 /usr/bin/letsencrypt-renew && chmod 755 /start.sh
-
-# copy in code
-ADD errors/ /var/www/errors
-
-VOLUME /var/www/html
 
 EXPOSE 443 80
 
