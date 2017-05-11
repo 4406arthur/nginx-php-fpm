@@ -1,6 +1,6 @@
 FROM nginx:mainline-alpine
 
-MAINTAINER ngineered <support@ngineered.co.uk>
+MAINTAINER ArthurMa <arthurma@loftechs.com>
 
 ENV php_conf /etc/php5/php.ini
 ENV fpm_conf /etc/php5/php-fpm.conf
@@ -19,16 +19,12 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     php5-pdo \
     php5-pdo_mysql \
     php5-mysql \
-    php5-mysqli \
     php5-mcrypt \
     php5-ctype \
     php5-zlib \
     php5-gd \
     php5-exif \
     php5-intl \
-    php5-memcache \
-    php5-sqlite3 \
-    php5-pgsql \
     php5-xml \
     php5-xsl \
     php5-curl \
@@ -39,7 +35,6 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     php5-soap \
     php5-dom \
     php5-zip \
-    php5-redis@testing \
     python \
     python-dev \
     py-pip \
@@ -55,14 +50,16 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     mkdir -p /var/www/app && \
     mkdir -p /run/nginx && \
     mkdir -p /var/log/supervisor &&\
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-    php -r "if (hash_file('SHA384', 'composer-setup.php') === '${composer_hash}') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" && \
-    php composer-setup.php --install-dir=/usr/bin --filename=composer && \
-    php -r "unlink('composer-setup.php');" && \
     pip install -U pip && \
     pip install -U certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
     apk del gcc musl-dev linux-headers libffi-dev augeas-dev python-dev
+
+#for php5-mongo
+RUN apk --no-cache add ca-certificates && \
+    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-php5-mongo/master/sgerrand.rsa.pub && \
+    wget https://github.com/sgerrand/alpine-pkg-php5-mongo/releases/download/1.16.4-r0/php5-mongo-1.6.14-r0.apk && \
+    apk add php5-mongo-1.6.14-r0.apk
 
 
 ADD conf/supervisord.conf /etc/supervisord.conf
@@ -71,6 +68,11 @@ ADD conf/supervisord.conf /etc/supervisord.conf
 RUN rm -Rf /etc/nginx/nginx.conf
 ADD conf/nginx.conf /etc/nginx/nginx.conf
 
+#ceate log dir and a env var
+RUN mkdir -p /var/log/sTune && \
+    touch /var/log/sTune/access.log && \
+    chown -R nginx:nginx /var/log/sTune && \
+    echo "fastcgi_param    STUNE_ENV    docker;" >> /etc/nginx/fastcgi_params
 # nginx site conf
 RUN mkdir -p /etc/nginx/sites-available/ && \
 mkdir -p /etc/nginx/sites-enabled/ && \
