@@ -1,4 +1,4 @@
-FROM php:7.1.3-fpm-alpine
+FROM php:7.1.5-fpm-alpine
 
 MAINTAINER ArthurMa <arthurma@loftechs.com>
 
@@ -158,7 +158,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     pecl install mongodb && \
     docker-php-ext-enable mongodb.so && \
     #curl iconv session
-    docker-php-ext-install pdo_mysql mcrypt json sockets opcache && \
+    docker-php-ext-install pdo_mysql json sockets opcache && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /run/nginx && \
