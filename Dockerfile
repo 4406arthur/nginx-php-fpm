@@ -1,4 +1,4 @@
-FROM php:7.1.5-fpm-alpine
+FROM php:7.1.7-fpm-alpine
 
 MAINTAINER ArthurMa <arthurma@loftechs.com>
 
