@@ -150,6 +150,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     echo /etc/apk/respositories && \
     apk update && \
     apk add --no-cache bash \
+    libmcrypt \
     supervisor \
     curl \
     python \
@@ -157,27 +158,21 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     py-pip && \
     pecl install mongodb && \
     docker-php-ext-enable mongodb.so && \
-    #curl iconv session
-    docker-php-ext-install pdo_mysql json sockets opcache && \
+    pecl install redis && \
+    docker-php-ext-enable redis.so && \
+    #pdo_mysql mcrypt sockets
+    docker-php-ext-install pdo_mysql mysqli sockets opcache mcrypt && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /run/nginx && \
     mkdir -p /var/log/supervisor && \
     pip install -U pip && \
-    pip install -U certbot && \
-    mkdir -p /etc/letsencrypt/webrootauth && \
     apk del python-dev .build-deps
-#    ln -s /usr/bin/php7 /usr/bin/php
 
 ADD conf/supervisord.conf /etc/supervisord.conf
 
 # Copy our nginx config
-RUN rm -Rf /etc/nginx/nginx.conf && \
-    #ceate log dir for logger use
-    mkdir -p /var/log/sTune && \
-    touch /var/log/sTune/api.log && \
-    chown -R nginx:nginx /var/log/sTune
-
+RUN rm -Rf /etc/nginx/nginx.conf
 ADD conf/nginx.conf /etc/nginx/nginx.conf
 
 # nginx site conf
@@ -210,9 +205,7 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
 
 # Add Scripts
 ADD scripts/start.sh /start.sh
-ADD scripts/letsencrypt-setup /usr/bin/letsencrypt-setup
-ADD scripts/letsencrypt-renew /usr/bin/letsencrypt-renew
-RUN chmod 755 /usr/bin/letsencrypt-setup && chmod 755 /usr/bin/letsencrypt-renew && chmod 755 /start.sh
+RUN chmod 755 /start.sh
 
 EXPOSE 443 80
 
