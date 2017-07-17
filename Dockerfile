@@ -151,6 +151,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     apk update && \
     apk add --no-cache bash \
     libmcrypt \
+    icu-libs \
     supervisor \
     curl \
     python \
@@ -161,7 +162,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     pecl install redis && \
     docker-php-ext-enable redis.so && \
     #pdo_mysql mcrypt sockets
-    docker-php-ext-install pdo_mysql mysqli sockets opcache mcrypt && \
+    docker-php-ext-install pdo_mysql mysqli sockets opcache mcrypt intl bcmath && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /run/nginx && \
