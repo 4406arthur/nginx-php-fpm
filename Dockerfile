@@ -1,4 +1,4 @@
-FROM php:7.1.7-fpm-alpine
+FROM php:7.2.3-fpm-alpine3.7
 
 MAINTAINER ArthurMa <arthurma@loftechs.com>
 
@@ -6,7 +6,9 @@ ENV php_conf /usr/local/etc/php-fpm.conf
 ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
 ENV php_vars /usr/local/etc/php/conf.d/docker-vars.ini
 
-ENV NGINX_VERSION 1.13.1
+ENV NGINX_VERSION 1.13.10
+ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && CONFIG="\
@@ -58,6 +60,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && addgroup -S nginx \
   && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
   && apk add --no-cache --virtual .build-deps \
+    gnu-libiconv \
     gcc \
     autoconf  \
     libc-dev \
@@ -145,10 +148,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && ln -sf /dev/stdout /var/log/nginx/access.log \
   && ln -sf /dev/stderr /var/log/nginx/error.log
 
-RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
-#    sed -i -e "s/v3.4/edge/" /etc/apk/repositories && \
-    echo /etc/apk/respositories && \
-    apk update && \
+RUN \
     apk add --no-cache bash \
     libmcrypt \
     icu-libs \
@@ -161,8 +161,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     docker-php-ext-enable mongodb.so && \
     pecl install redis && \
     docker-php-ext-enable redis.so && \
-    #pdo_mysql mcrypt sockets
-    docker-php-ext-install pdo_mysql mysqli sockets opcache mcrypt intl bcmath && \
+    docker-php-ext-install pdo_mysql opcache intl bcmath && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /run/nginx && \
